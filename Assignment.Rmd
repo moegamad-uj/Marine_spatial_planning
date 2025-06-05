@@ -1,0 +1,570 @@
+---
+title: "Marine Spatial PLanning"
+author: "Moegamad Uzair Jack"
+date: "2025-06-02"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading packages
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(vegan)
+```
+
+## Reading File
+Reading csv as a data frame
+
+```{r}
+EF <- read.csv('EstuaryFishSurveyData.csv')
+class(EF)
+```
+Replace NA values with 0
+
+```{r}
+EF[is.na(EF)] <- 0
+```
+
+## Plot Species Number
+Creating a separate column
+
+```{r}
+EF$alpha <- specnumber(EF[4: 148])
+```
+
+Plotting alpha diversity (species number) per estuary
+
+```{r}
+EF$Estuary <- factor(EF$Estuary, levels = unique(EF$Estuary)) # Ensure Estuary is a factor for ordered x-axis labels
+
+g1 <- ggplot(EF, aes(x = Estuary, y = alpha)) +
+  geom_bar(stat = "identity", fill = "grey") +
+  theme_minimal() +
+  labs(
+    title = "Alpha Diversity Across Estuary",
+    x = "Estuary",
+    y = "Alpha diversity"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 5),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank()
+        )
+g1
+```
+
+## Calculating Diversity
+
+```{r}
+EF$SW <- diversity(EF[4:148], index = "shannon")
+```
+
+## Creating kmEast column
+```{r}
+EF$kmEast <- 3000 - EF$kmWest
+```
+
+## Plotting alpha diveristy vs. km East
+
+```{r}
+g2 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
+  geom_point(color = "steelblue", size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Alpha Diversity vs. km East",
+    x = "km East",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
+g2
+```
+
+
+## Plotting Shannon–Wiener Diversity vs. km East
+
+```{r}
+g3 <- ggplot(EF, aes(x = kmEast, y = SW)) +
+  geom_point(color = "steelblue", size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Shannon–Wiener Diversity vs. km East",
+    x = "km East",
+    y = "Shannon–Wiener Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
+g3
+```
+
+## Reorder data frame
+
+```{r}
+EF <- EF[order(-EF$alpha), ]
+
+```
+
+## Creating new variable
+
+```{r}
+EF$AlphaList <- 0
+EF$AlphaList[1:20] <- 1
+```
+
+## Plot top 20 in RED and the rest in BLACK
+ Plot the alpha diversity against km East with colour factor based on the alpha rank. 
+ Here the  top 20 are represented in red and the rest in black.
+
+```{r}
+
+g4 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
+  geom_point(aes(color = factor(AlphaList)), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+   scale_color_manual(
+    values = c("0" = "black", "1" = "red"),
+    labels = c("Other estuaries", "Top 20 estuaries"),
+    name = "Alpha Rank"
+  ) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Alpha Diversity vs. km East",
+    x = "km East",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "right"
+  )
+
+g4
+
+```
+
+## Alpha Method
+Now we need to list the top 20 esturaries and save it into a variable
+
+```{r}
+AlphaList <- EF[1:20, 1]
+AlphaList
+```
+
+We want the list and the number of species.
+0 represents the species not in the list; 1 represents the species that is in the list.
+```{r}
+AlphaSpp <- specnumber(EF[,4:148] , EF$AlphaList)
+AlphaSpp
+```
+There are 116 species in the list and 145 species in total. So, we calculate the  percentage of species within the list.
+```{r}
+AlphaPerc <- (116/145) *100
+AlphaPerc
+```
+## Change the metric
+Now do the same for the SW index. Start by reordering the dataframe
+
+```{r}
+EF <- EF[order(-EF$SW), ]
+
+```
+Creating new variable
+
+```{r}
+EF$SW_list <- 0
+EF$SW_list[1:20] <- 1
+```
+
+Plot top 20 in RED and the rest in BLACK
+Plot the SW against km East with colour factor based on the SW rank. 
+Here the  top 20 are represented in red and the rest in black.
+Keep alpha to compare between the 2.
+
+```{r}
+
+g5 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
+  geom_point(aes(color = factor(SW_list)), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+   scale_color_manual(
+    values = c("0" = "black", "1" = "red"),
+    labels = c("Other estuaries", "Top 20 estuaries"),
+    name = "SW Rank"
+  ) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "SW index vs. km East",
+    x = "km East",
+    y = "SW"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "right"
+  )
+
+g5
+
+```
+## SW Method
+Now we need to list the top 20 esturaries and save it into a variable
+
+```{r}
+SW_list <- EF[1:20, 1]
+SW_list
+```
+
+We want the list and the number of species.
+0 represents the species not in the list; 1 represents the species that is in the list.
+```{r}
+SW_spp <- specnumber(EF[,4:148] , EF$SW_list)
+SW_spp
+```
+There are 110 species in the list and 145 species in total. So, we calculate the  percentage of species within the list.
+```{r}
+SW_perc <- (110/145) *100
+SW_perc
+```
+
+## Biogeographic Zonation
+Use specnumber to calculate the species number per biogeographic zone (BZ)
+```{r}
+specnumber(EF[,4:148], EF$BZ)
+```
+In each of the 3 zones, choose the most diverse estuary in each  zone.
+Choose 6 estuaries from each zone (2 spare).
+6 from W; 7 from S; 7 from E.
+Start ordering the data frame by BZ then by alpha.
+
+```{r}
+EF <- EF[order(EF$BZ, -EF$alpha), ]
+head(EF)
+```
+Creating a list
+
+```{r}
+
+EF$BZ_list <- 0
+
+top_n <- c(W = 6, S = 7, E = 7)
+
+for (z in names(top_n)) {
+  zone_rows <- which(EF$BZ == z)
+  EF$BZ_list[head(zone_rows, top_n[z])] <- 1
+}
+
+```
+Creating the plot
+```{r}
+g6 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
+  geom_point(aes(color = factor(BZ_list)), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+   scale_color_manual(
+    values = c("0" = "black", "1" = "red"),
+    labels = c("Other estuaries", "Top estuaries"),
+    name = "Alpha Rank"
+  ) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Alpha Diversity per BZ vs. km East",
+    x = "km East",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "right"
+  )
+
+g6
+```
+We want the list and the number of species.
+0 represents the species not in the list; 1 represents the species that is in the list.
+```{r}
+BZ_spp <- specnumber(EF[, 4:148], EF$BZ_list)
+BZ_spp
+```
+There are 122 species in the list and 145 species in total. So, we calculate the  percentage of species within the list.
+```{r}
+BZ_perc <- (122/145) *100
+BZ_perc
+```
+## Dendrogam
+We have things called biogeographical zones, each with their own sets of species. When 2 zones come together (overlap), that is where you get the most species. But that is not good to protect. The edges have more diversity but we need to protect the centre. The edges have high diversity and are not good for protection because they are a mix and not  atrue measure of diversity.
+We do multivariate. We find if the ecosystem falls into groups and then we identify the estuaries that fall into these ecossytem groups. To do this, we make use of a dendrogram.
+
+Create a dendrogram based on species composition. 'vegan' plays a key role in this process.
+Pairwise comparisons between each estuary to develop an index of similarity in species composition.
+
+```{r}
+EF <- subset(EF, alpha > 0)  #subset the data due to the 0s
+
+EF_deco <- decostand(EF[,4:148], method = 'total')
+```
+
+
+## Bray-Curtis
+Bray-Curtis most commonly used index for similarity. Especially when there are many 0s, Bray-CUrtis is a good fit.
+
+```{r}
+EF_dist <- vegdist(EF_deco, method =  'bray')
+```
+## H-clust and V-clust
+H-clust is horizontal and v-clust is vertical.
+
+```{r}
+
+EF_clust <- hclust(EF_dist, method = "average") # run clustering
+
+plot(
+  EF_clust,
+  labels = EF$Estuary,
+  hang = -1,
+  cex = 0.6,
+  main = NULL,
+  ylab = "Dissimilarity",
+  sub = "",
+  col = "black"
+)
+```
+Reduce the tree
+```{r}
+slice <- cutree(EF_clust,
+                h= 0.8)
+slice
+
+EF$Slice80 <- slice #adding into data frame
+```
+Ordering data by slice then alpha
+```{r}
+EF <- EF[order(EF$Slice80, -EF$alpha), ]
+```
+
+Creating list and score the top 2 in each Slice80 group as 1 and the rest as 0
+```{r}
+# Initialize the Slice80_list column to 0
+EF$Slice80_list <- 0
+
+# Loop through each unique Slice80 group
+for (g in unique(EF$Slice80)) {
+  
+  # Find all rows in the group
+  group <- which(EF$Slice80 == g)
+  
+  # Determine how many rows to score
+  top_n <- if (g == "2") {
+    4
+  } else if (g == "3") {
+    3
+  } else {
+    2
+  }
+  
+  # Always score at least 1 row (if only 1 available)
+  EF$Slice80_list[group[1:min(top_n, length(group))]] <- 1
+}
+
+```
+
+## Plot the Slice80 list
+
+```{r}
+g7 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
+  geom_point(aes(color = factor(Slice80_list)), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+   scale_color_manual(
+    values = c("0" = "black", "1" = "red"),
+    labels = c("Other estuaries", "Top estuaries"),
+    name = "Alpha Rank"
+  ) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Alpha Diversity per BZ vs. km East",
+    x = "km East",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "right"
+  )
+
+g7
+```
+List the species in the groups
+```{r}
+Slice80_spp <- specnumber(EF[,4:148], EF$Slice80_list)
+Slice80_spp
+```
+There are 100 species in the list and 145 species in total. So, we calculate the  percentage of species within the list.
+```{r}
+Slice80_perc <- (100/145) *100
+Slice80_perc
+```
+## The Range Centre Method
+
+Calculate the range
+```{r}
+# species abundance data
+spp <- EF[, 4:148]
+
+# distance from eastern boundary
+coords <- EF$kmEast
+```
+Now we need to calculate the range for each species. We can create a function to do this.
+```{r}
+range_stats <- function(abundance, coords) {
+  present_coords <- coords[abundance > 0]  # get kmEast values where species is present
+  
+  if (length(present_coords) == 0) {
+    # species not present anywhere
+    return(c(west_limit = NA, east_limit = NA, center = NA))
+  } else {
+    east <- min(present_coords)                    # furthest west point
+    west <- max(present_coords)                    # furthest east point
+    centre <- mean(c(east, west))                  # center of range
+    
+    return(c(east_limit = east, west_limit = west, centre = centre))
+  }
+}
+
+# Apply the function across all species (columns)
+spp_range <- t(apply(spp, 2, range_stats, coords = coords))
+
+```
+Now we just need to plop our results into a dataframe which contains the species names as well as their west_limit, east_limit and centre values.
+```{r}
+# convert result to a clean data frame
+spp_range_list <- data.frame(
+  Species = colnames(spp),  # species names from column headers
+  spp_range                 # range stats: west, east, center
+)
+
+# preview first few rows of the result
+head(spp_range_list)
+```
+
+Now we can plot a histogram with the frequency of range centres per 100 km.
+```{r}
+g8<- ggplot(spp_range_list, aes(x = centre)) +
+  geom_histogram(binwidth = 100, fill = "grey", color = "black") +
+  xlab("Range Centre (km East)") +
+  ylab("Number of Species") +
+  ggtitle("Frequency of Species Range Centres (per 100 km)") +
+  theme_minimal()
+
+g8 
+```
+Extract frequencies from histogram and add that to the original data frame
+```{r}
+
+EF$block <- ceiling(EF$kmEast/100)
+
+EF$RC_list <- 1
+
+EF <- EF[order(EF$kmEast),]
+
+interval_table <- table(cut(spp_range_list$centre,seq(0,3000,100)))
+print(order(interval_table, decreasing = TRUE))
+```
+
+```{r}
+# Define blocks to score as 0
+zero_blocks <- c(13, 14, 3, 9, 11, 2, 4, 5, 6, 8)
+
+# Loop through each row
+for (i in 1:nrow(EF)) {
+  if (EF$block[i] %in% zero_blocks) {
+    EF$RC_list[i] <- 0
+  }
+}
+
+```
+
+Subset data and remove the zeros
+```{r}
+EF <- subset(EF, RC_list > 0) 
+```
+
+Order data by block and alpha
+```{r}
+EF <- EF[order(EF$block, -EF$alpha), ]
+```
+
+Assigning max
+```{r}
+max <- EF$alpha[1]  # Initialize max with the first alpha value
+EF$RC_list <- 0 
+EF$RC_list[1] <- 1
+
+for (j in 2:nrow(EF)) {
+  if (EF$block[j] > EF$block[j-1]) {
+    max <- 0
+    if (EF$alpha[j] > max) {
+     EF$RC_list[j] <- 1 
+    max <- EF$alpha[j]
+    }
+  } else if (EF$block[j] == EF$block[j-1]) {
+    if (EF$alpha[j] > max) {
+      EF$RC_list[j] <- 1
+      EF$RC_list[j-1] <- 0
+      max <- EF$alpha[j]
+    }
+  }
+}
+
+sum(EF$RC_list)
+```
+List the species in the groups
+```{r}
+RC_spp <- specnumber(EF[,4:148], EF$RC_list)
+RC_spp
+```
+There are 121 species in the list and 145 species in total. So, we calculate the  percentage of species within the list.
+```{r}
+RC_perc <- (121/145) *100
+RC_perc
+```
+## Plot the RC list
+
+```{r}
+g9 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
+  geom_point(aes(color = factor(RC_list)), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+   scale_color_manual(
+    values = c("0" = "black", "1" = "red"),
+    labels = c("Other estuaries", "Top estuaries"),
+    name = "Top 20 of method"
+  ) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Alpha Diversity vs. km East",
+    x = "km East",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "right"
+  )
+
+g9
+```
