@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggpubr)
 library(vegan)
+library(readxl)
 ```
 
 ## Reading File
@@ -703,11 +704,41 @@ g11<- ggplot(EF2, aes(x = kmEast, y = alpha, color = factor(comp_list))) +
 g11
 ```
 
-
-
 ```{r}
-# Create table of estuary scores
+#Different approaches, different lists
+EF <- EF[order(-EF$alpha),]
+EF2 <- EF2[order(-EF$alpha),]
+EF$con_list <- EF$AlphaList + EF$SW_list + EF$BZ_list + EF$Slice80_list + EF$RC_list + EF2$comp_list
+
+EF <- EF[order(-EF$con),]
+con_list <- EF[1:20,1]
+EF$con_list <- 0
+EF$con_list[1:20] <- 1
+
+g12 <- ggplot(EF, aes(x = kmEast, y = alpha)) + 
+  geom_point(size = 2,  aes(colour = as.factor(con_list))) +
+  scale_color_manual( values = c("black", "red"),
+                      label = c("Other estuaries", "Top 20")) +
+  theme_bw() +
+  theme(axis.ticks.length = unit(-0.25, "cm") ) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  labs(  x = "km East",
+         y = "Alpha Diversity",
+         col = "Consensus Method Selection")
+g12
+
+```
+## Consensus Method
+```{r}
+#slice80 spp
+conN <- specnumber(EF[4:148], EF$con_list) #112 species protected
+
+#slice80 %
+con_perc <- (conN[2]/145)*100 
+
+# Create estuary_table with Estuary column included
 estuary_table <- data.frame(
+  Estuary = as.character(EF$Estuary),
   Alpha = EF$AlphaList,
   SW = EF$SW_list,
   BZ = EF$BZ_list,
@@ -718,22 +749,21 @@ estuary_table <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Remove old summary rows if this is re-run
-estuary_table <- estuary_table[!rownames(estuary_table) %in% c("Species Protected", "Percent Protected"), ]
-
-# Create the two summary rows as data frames
+# Create summary rows
 species_row <- data.frame(
+  Estuary = "Species Protected",
   Alpha = AlphaSpp[2],
   SW = SW_spp[2],
   BZ = BZ_spp[2],
   Slice80 = Slice80_spp[2],
   RC = RC_spp[2],
   Comp = spp_count,
-  Consensus = con_spp[2],
+  Consensus = conN[2],
   stringsAsFactors = FALSE
 )
 
 percent_row <- data.frame(
+  Estuary = "Percent Protected",
   Alpha = ceiling(AlphaPerc),
   SW = ceiling(SW_perc),
   BZ = ceiling(BZ_perc),
@@ -744,15 +774,104 @@ percent_row <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Bind the summary rows
+# Combine all rows
 estuary_table <- rbind(estuary_table, species_row, percent_row)
 
-# Rename the last two rows
-n <- nrow(estuary_table)
-rownames(estuary_table)[(n-1):n] <- c("Species Protected", "Percent Protected")
-
+# View the table
+view(estuary_table)
 ```
 
+
+```{r}
+EF3 <- read_xlsx('EstuaryFishSurveyData.xlsx')
+EPA <- read_xlsx('Protected estuaries.xlsx')
+
+# Merge EF and EPA using different column names
+matched_df <- merge(EF3, EPA, by.x = "Estuary", by.y = "Protected Estuaries")
+```
+
+Replace NA values with 0
+
+```{r}
+EF3[is.na(EF3)] <- 0
+```
+# Quick diagnostic code:
+ Check columns in EF
+print(colnames(EF))
+
+ If Estuary_clean missing, create it
+if (!"Estuary_clean" %in% colnames(EF)) {
+  EF$Estuary_clean <- tolower(trimws(EF$Estuary))
+}
+
+ Same for EF2
+print(colnames(EF2))
+if (!"Estuary_clean" %in% colnames(EF2)) {
+  EF2$Estuary_clean <- tolower(trimws(EF2$Estuary))
+}
+
+```{r}
+# Clean estuary names in both datasets
+EF3$Estuary_clean <- tolower(trimws(EF3$Estuary))
+matched_df$Estuary_clean <- tolower(trimws(matched_df$Estuary))  # assuming matched_df has Estuary column
+
+# Create EPA score as a vector
+epa_score <- ifelse(EF3$Estuary_clean %in% matched_df$Estuary_clean, 1, 0)
+
+# Optional: name the vector by estuary for clarity
+names(epa_score) <- EF3$Estuary
+
+EF3$EPA_score <- epa_score
+
+EF3 <- EF3 %>%
+  left_join(EF[, c("Estuary_clean", "AlphaList", "SW_list", "BZ_list", "Slice80_list", "RC_list", "con_list")],
+            by = "Estuary_clean") %>%
+  left_join(EF2[, c("Estuary_clean", "comp_list")],
+            by = "Estuary_clean")
+
+
+# Vector of columns you want to fix
+cols_to_fix <- c("AlphaList", "SW_list", "BZ_list", "Slice80_list", "RC_list", "comp_list")
+
+# Check which of these columns exist in EF3
+cols_present <- cols_to_fix[cols_to_fix %in% colnames(EF3)]
+
+# Replace NA with 0 in existing columns only
+EF3 <- EF3 %>% mutate(across(all_of(cols_present), ~replace_na(., 0)))
+
+pro_table <- data.frame(
+  Estuary = EF3$Estuary,
+  EPA = EF3$EPA_score,
+  Alpha = EF3$AlphaList,
+  SW = EF3$SW_list,
+  BZ = EF3$BZ_list,
+  Slice80 = EF3$Slice80_list,
+  RC = EF3$RC_list,
+  Comp = EF3$comp_list,
+    stringsAsFactors = FALSE
+)
+pro_table[is.na(pro_table)] <- 0
+
+
+# Make sure the columns are numeric
+pro_table$EPA <- as.numeric(pro_table$EPA)
+pro_table$Alpha <- as.numeric(pro_table$Alpha)
+pro_table$SW <- as.numeric(pro_table$SW)
+pro_table$BZ <- as.numeric(pro_table$BZ)
+pro_table$Slice80 <- as.numeric(pro_table$Slice80)
+pro_table$RC <- as.numeric(pro_table$RC)
+pro_table$Comp <- as.numeric(pro_table$Comp)
+
+# Create a new Consensus score by summing across the relevant columns
+pro_table$Consensus <- rowSums(pro_table[, c("EPA", "Alpha", "SW", "BZ", "Slice80", "RC", "Comp")])
+
+pro_table <- pro_table[order(-pro_table$Consensus), ]
+
+
+# View the table
+view(pro_table)
+
+```
 
 ## Conclusion
 Create a table of the lists, the number of species protected and the percentage of species protected
