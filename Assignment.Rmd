@@ -704,42 +704,53 @@ g11
 ```
 
 
+
 ```{r}
-estuary_table <- estuary_table[!rownames(estuary_table) %in% c("Species Protected", "Percent Protected"), ]
-
-comp_spp_val <- if (length(comp_spp) >= 2 && !is.na(comp_spp[2])) comp_spp[2] else 0
-
-estuary_table <- rbind(
-  estuary_table,
-  data.frame(
-    Alpha = AlphaSpp[2],
-    SW = SW_spp[2],
-    BZ = BZ_spp[2],
-    Slice80 = Slice80_spp[2],
-    RC = RC_spp[2],
-    Comp = comp_spp_val,
-    Consensus = con_spp[2],
-    stringsAsFactors = FALSE
-  ),
-  data.frame(
-    Alpha = ceiling(AlphaPerc),
-    SW = ceiling(SW_perc),
-    BZ = ceiling(BZ_perc),
-    Slice80 = ceiling(Slice80_perc),
-    RC = ceiling(RC_perc),
-    Comp = ceiling(comp_perc),
-    Consensus = ceiling(con_perc),
-    stringsAsFactors = FALSE
-  )
+# Create table of estuary scores
+estuary_table <- data.frame(
+  Alpha = EF$AlphaList,
+  SW = EF$SW_list,
+  BZ = EF$BZ_list,
+  Slice80 = EF$Slice80_list,
+  RC = EF$RC_list,
+  Comp = EF2$comp_list,
+  Consensus = EF$con_list,
+  stringsAsFactors = FALSE
 )
 
-# Rename summary rows
+# Remove old summary rows if this is re-run
+estuary_table <- estuary_table[!rownames(estuary_table) %in% c("Species Protected", "Percent Protected"), ]
+
+# Create the two summary rows as data frames
+species_row <- data.frame(
+  Alpha = AlphaSpp[2],
+  SW = SW_spp[2],
+  BZ = BZ_spp[2],
+  Slice80 = Slice80_spp[2],
+  RC = RC_spp[2],
+  Comp = spp_count,
+  Consensus = con_spp[2],
+  stringsAsFactors = FALSE
+)
+
+percent_row <- data.frame(
+  Alpha = ceiling(AlphaPerc),
+  SW = ceiling(SW_perc),
+  BZ = ceiling(BZ_perc),
+  Slice80 = ceiling(Slice80_perc),
+  RC = ceiling(RC_perc),
+  Comp = ceiling(comp_perc),
+  Consensus = ceiling(con_perc),
+  stringsAsFactors = FALSE
+)
+
+# Bind the summary rows
+estuary_table <- rbind(estuary_table, species_row, percent_row)
+
+# Rename the last two rows
 n <- nrow(estuary_table)
-rownames(estuary_table)[(n - 1):n] <- c("Species Protected", "Percent Protected")
+rownames(estuary_table)[(n-1):n] <- c("Species Protected", "Percent Protected")
 
-which(is.na(estuary_table), arr.ind = TRUE)
-
-estuary_table
 ```
 
 
