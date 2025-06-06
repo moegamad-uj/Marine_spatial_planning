@@ -3,8 +3,8 @@ title: "Marine Spatial PLanning"
 author: "Moegamad Uzair Jack"
 date: "2025-06-02"
 output:
-  word_document: default
   html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -32,7 +32,8 @@ Replace NA values with 0
 EF[is.na(EF)] <- 0
 ```
 
-## Plot Species Number
+
+## Alpha Diversity
 Creating a separate column
 
 ```{r}
@@ -60,23 +61,22 @@ g1 <- ggplot(EF, aes(x = Estuary, y = alpha)) +
 g1
 ```
 
-## Calculating Diversity
+## SW Diversity
 
 ```{r}
 EF$SW <- diversity(EF[4:148], index = "shannon")
 ```
 
-## Creating kmEast column
+Creating kmEast column
 ```{r}
 EF$kmEast <- 3000 - EF$kmWest
 ```
-
-## Plotting alpha diveristy vs. km East
+## Plots
+Plotting alpha diveristy vs. km East
 
 ```{r}
 g2 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
   geom_point(color = "steelblue", size = 2) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
   theme_minimal(base_size = 12) +
   labs(
     title = "Alpha Diversity vs. km East",
@@ -92,12 +92,11 @@ g2
 ```
 
 
-## Plotting Shannon–Wiener Diversity vs. km East
+Plotting Shannon–Wiener Diversity vs. km East
 
 ```{r}
 g3 <- ggplot(EF, aes(x = kmEast, y = SW)) +
   geom_point(color = "steelblue", size = 2) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
   theme_minimal(base_size = 12) +
   labs(
     title = "Shannon–Wiener Diversity vs. km East",
@@ -112,21 +111,23 @@ g3 <- ggplot(EF, aes(x = kmEast, y = SW)) +
 g3
 ```
 
-## Reorder data frame
+## Data frame manipulation
+Reorder data frame
 
 ```{r}
 EF <- EF[order(-EF$alpha), ]
 
 ```
 
-## Creating new variable
+Creating new variable
 
 ```{r}
 EF$AlphaList <- 0
 EF$AlphaList[1:20] <- 1
 ```
 
-## Plot top 20 in RED and the rest in BLACK
+## Plots
+Plot top 20 in RED and the rest in BLACK
  Plot the alpha diversity against km East with colour factor based on the alpha rank. 
  Here the  top 20 are represented in red and the rest in black.
 
@@ -134,8 +135,7 @@ EF$AlphaList[1:20] <- 1
 
 g4 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
   geom_point(aes(color = factor(AlphaList)), size = 2) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
-   scale_color_manual(
+    scale_color_manual(
     values = c("0" = "black", "1" = "red"),
     labels = c("Other estuaries", "Top 20 estuaries"),
     name = "Alpha Rank"
@@ -150,7 +150,7 @@ g4 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
     plot.title = element_text(face = "bold", hjust = 0.5),
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 10),
-    legend.position = "right"
+    legend.position = "top"
   )
 
 g4
@@ -199,8 +199,7 @@ Keep alpha to compare between the 2.
 
 g5 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
   geom_point(aes(color = factor(SW_list)), size = 2) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
-   scale_color_manual(
+    scale_color_manual(
     values = c("0" = "black", "1" = "red"),
     labels = c("Other estuaries", "Top 20 estuaries"),
     name = "SW Rank"
@@ -215,7 +214,7 @@ g5 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
     plot.title = element_text(face = "bold", hjust = 0.5),
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 10),
-    legend.position = "right"
+    legend.position = "top"
   )
 
 g5
@@ -273,15 +272,14 @@ Creating the plot
 ```{r}
 g6 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
   geom_point(aes(color = factor(BZ_list)), size = 2) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
-   scale_color_manual(
+    scale_color_manual(
     values = c("0" = "black", "1" = "red"),
     labels = c("Other estuaries", "Top estuaries"),
     name = "Alpha Rank"
   ) +
   theme_minimal(base_size = 12) +
   labs(
-    title = "Alpha Diversity per BZ vs. km East",
+    title = "BZ List",
     x = "km East",
     y = "Alpha Diversity"
   ) +
@@ -289,7 +287,7 @@ g6 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
     plot.title = element_text(face = "bold", hjust = 0.5),
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 10),
-    legend.position = "right"
+    legend.position = "top"
   )
 
 g6
@@ -355,7 +353,7 @@ Ordering data by slice then alpha
 ```{r}
 EF <- EF[order(EF$Slice80, -EF$alpha), ]
 ```
-
+#
 Creating list and score the top 2 in each Slice80 group as 1 and the rest as 0
 ```{r}
 # Initialize the Slice80_list column to 0
@@ -382,20 +380,19 @@ for (g in unique(EF$Slice80)) {
 
 ```
 
-## Plot the Slice80 list
+## Plots
 
 ```{r}
 g7 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
   geom_point(aes(color = factor(Slice80_list)), size = 2) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
-   scale_color_manual(
+    scale_color_manual(
     values = c("0" = "black", "1" = "red"),
     labels = c("Other estuaries", "Top estuaries"),
     name = "Alpha Rank"
   ) +
   theme_minimal(base_size = 12) +
   labs(
-    title = "Alpha Diversity per BZ vs. km East",
+    title = "SLice 80 List",
     x = "km East",
     y = "Alpha Diversity"
   ) +
@@ -403,7 +400,7 @@ g7 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
     plot.title = element_text(face = "bold", hjust = 0.5),
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 10),
-    legend.position = "right"
+    legend.position = "top"
   )
 
 g7
@@ -542,20 +539,19 @@ There are 121 species in the list and 145 species in total. So, we calculate the
 RC_perc <- (121/145) *100
 RC_perc
 ```
-## Plot the RC list
+## Plots
 
 ```{r}
 g9 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
   geom_point(aes(color = factor(RC_list)), size = 2) +
-  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
-   scale_color_manual(
+     scale_color_manual(
     values = c("0" = "black", "1" = "red"),
     labels = c("Other estuaries", "Top estuaries"),
     name = "Top 20 of method"
   ) +
   theme_minimal(base_size = 12) +
   labs(
-    title = "Alpha Diversity vs. km East",
+    title = "RC List",
     x = "km East",
     y = "Alpha Diversity"
   ) +
@@ -563,8 +559,191 @@ g9 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
     plot.title = element_text(face = "bold", hjust = 0.5),
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 10),
-    legend.position = "right"
+    legend.position = "top"
   )
 
 g9
 ```
+## Random Method
+
+```{r}
+
+max <- 0
+EF$rand_list <- 0
+EF$rand_best_list <- 0
+
+while (max <= 100) {
+  EF$rand_list <- 0
+  EF <- EF[sample(1:nrow(EF)), ]
+  EF$rand_list[1:20] <- 1
+   
+  rand_spp <- specnumber(EF[, 4:148], EF$rand_list)
+   
+  if (rand_spp[2] > max) {
+    EF$rand_best_list  <- EF$rand_list
+      max <- rand_spp[2]
+      print(max)
+   }
+}
+
+cat("Final max:", max, "\n")
+```
+
+So, we calculate the  percentage of species within the list.
+```{r}
+rand_perc <- (113/145) *100
+rand_perc
+```
+Order and extract the estuary names
+```{r}
+EF <- EF[order(-EF$rand_best_list, -EF$alpha), ]
+
+# Extract estuary names where rand_best_list == 1
+top_estuaries <- EF$Estuary[EF$rand_best_list == 1]
+
+# View or print
+top_estuaries
+
+```
+Plot
+```{r}
+g10 <- ggplot(EF, aes(x = kmEast, y = alpha)) +
+  geom_point(aes(color = factor(rand_best_list)), size = 2) +
+     scale_color_manual(
+    values = c("0" = "black", "1" = "red"),
+    labels = c("Other estuaries", "Top estuaries"),
+    name = "Top 20 of random method"
+  ) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Random Best List",
+    x = "km East",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "top"
+  )
+
+g10
+```
+
+
+## Complementary Method
+Sort data frame by alpha.
+Order list + Take most diverse estuary and put it in list.
+Remove  spp  that occurred in that most diverse estuary.
+Calculate alpha diversity again (for all estuaries).
+Then  take the second on the list. 
+Calculate alpha again + order list.
+
+```{r}
+# Read in the data
+EF2 <- read.csv('EstuaryFishSurveyData.csv')
+EF2[is.na(EF2)] <- 0
+EF2$kmEast <- 3000 - EF2$kmWest
+
+EF2$alpha <- specnumber(EF2[,4:148])
+
+EF2$alpha_sort <- specnumber(EF2[,4:148])
+
+EF2$comp_list <- 0
+spp_count <- 0
+
+# Loop to select 20 estuaries that contribute most unique species
+for (i in 1:20) {
+  EF2$alpha_sort <- specnumber(EF2[, 4:148])  # richness of remaining species per estuary
+  EF2 <- EF2[order(-EF2$alpha_sort), ]            # sort by descending richness
+  
+  spp_count <-spp_count + EF2$alpha_sort[1]
+  
+  EF2$comp_list[1] <- 1                    # mark the top estuary
+  
+    # Remove species already found in the top estuary from all rows
+  for (j in 4:148) {
+      if (EF2[1,j] > 0) {
+       EF2[,j] <- 0
+    }
+  }
+}
+
+comest <- subset(EF2, comp_list > 0)
+print(comest$Estuary)
+
+
+cat("Number of species:", spp_count, "\n")
+comp_perc <- (spp_count / 145) * 100
+cat("Percentage of species:", comp_perc, "%\n")
+```
+Plot
+```{r}
+
+g11<- ggplot(EF2, aes(x = kmEast, y = alpha, color = factor(comp_list))) +
+  geom_point(alpha = 0.7, size = 2) +
+   scale_color_manual(
+    values = c("0" = "black", "1" = "red"),
+    labels = c("Other estuaries", "Top estuaries"),
+    name = "Top 20 of complementary method"
+  ) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Complementary estuaries by Alpha diversity",
+    x = "km East",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "top"
+  )
+
+g11
+```
+
+
+```{r}
+estuary_table <- estuary_table[!rownames(estuary_table) %in% c("Species Protected", "Percent Protected"), ]
+
+comp_spp_val <- if (length(comp_spp) >= 2 && !is.na(comp_spp[2])) comp_spp[2] else 0
+
+estuary_table <- rbind(
+  estuary_table,
+  data.frame(
+    Alpha = AlphaSpp[2],
+    SW = SW_spp[2],
+    BZ = BZ_spp[2],
+    Slice80 = Slice80_spp[2],
+    RC = RC_spp[2],
+    Comp = comp_spp_val,
+    Consensus = con_spp[2],
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    Alpha = ceiling(AlphaPerc),
+    SW = ceiling(SW_perc),
+    BZ = ceiling(BZ_perc),
+    Slice80 = ceiling(Slice80_perc),
+    RC = ceiling(RC_perc),
+    Comp = ceiling(comp_perc),
+    Consensus = ceiling(con_perc),
+    stringsAsFactors = FALSE
+  )
+)
+
+# Rename summary rows
+n <- nrow(estuary_table)
+rownames(estuary_table)[(n - 1):n] <- c("Species Protected", "Percent Protected")
+
+which(is.na(estuary_table), arr.ind = TRUE)
+
+estuary_table
+```
+
+
+## Conclusion
+Create a table of the lists, the number of species protected and the percentage of species protected
+
+
